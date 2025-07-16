@@ -6,6 +6,11 @@
 
 #    define WEAK_LINK __attribute__((weak))
 
+#elif defined(STM32)
+
+#    define WEAK_LINK __attribute__((weak))
+#    define IRAM_ATTR // STM32 doesn't use IRAM attribute
+
 #else
 
 #    define WEAK_LINK
