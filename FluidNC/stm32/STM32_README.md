@@ -1,15 +1,27 @@
 # STM32 Support for FluidNC
 
-This document outlines the STM32 platform support implementation for FluidNC, specifically targeting BigTreeTech Octopus boards.
+This document outlines the STM32 platform support implementation for FluidNC, supporting multiple STM32-based CNC controller boards including BigTreeTech Octopus and Fysetc Spider v3.
 
 ## Overview
 
-The STM32 implementation provides a complete hardware abstraction layer for STM32 microcontrollers, allowing FluidNC to run on STM32-based CNC controller boards.
+The STM32 implementation provides a complete hardware abstraction layer for STM32 microcontrollers, allowing FluidNC to run on various STM32-based CNC controller boards with minimal configuration changes.
 
 ## Supported Hardware
 
 ### Primary Target: BigTreeTech Octopus v1.1
 - **MCU**: STM32F446RE
+- **Flash**: 512KB
+- **RAM**: 128KB
+- **GPIO**: 114 pins
+- **Timers**: 14 timers
+- **UART**: 4 UARTs
+- **SPI**: 4 SPI interfaces
+- **I2C**: 3 I2C interfaces
+- **ADC**: 3 ADCs with 16 channels
+- **DAC**: 2 DAC channels
+
+### Secondary Target: Fysetc Spider v3
+- **MCU**: STM32F446VET6
 - **Flash**: 512KB
 - **RAM**: 128KB
 - **GPIO**: 114 pins
@@ -79,6 +91,53 @@ The STM32 implementation provides complete drivers for:
 - **Thermistor 1**: PF5
 - **Thermistor Bed**: PF3
 
+### Fysetc Spider v3 Pin Assignments
+
+#### Stepper Motors
+- **X-axis**: Step=PE9, Dir=PE8, Enable=PE7
+- **Y-axis**: Step=PE11, Dir=PE10, Enable=PE7
+- **Z-axis**: Step=PE13, Dir=PE12, Enable=PE7
+- **E0-axis**: Step=PE15, Dir=PE14, Enable=PE7
+- **E1-axis**: Step=PD9, Dir=PD8, Enable=PE7
+
+#### Endstops
+- **X-min**: PA1
+- **Y-min**: PA2
+- **Z-min**: PA3
+- **X-max**: PB10
+- **Y-max**: PB11
+- **Z-max**: PB12
+
+#### Communication
+- **UART1**: TX=PA9, RX=PA10 (Host communication)
+- **SPI1**: SCK=PA5, MISO=PA6, MOSI=PA7 (SD card, TMC drivers)
+- **I2C1**: SCL=PB6, SDA=PB7 (OLED, sensors)
+
+#### PWM Outputs
+- **Spindle**: PB0
+- **Fan0**: PB4
+- **Fan1**: PB5
+- **Fan2**: PB6
+
+#### Analog Inputs
+- **Thermistor 0**: PC1
+- **Thermistor 1**: PC2
+- **Thermistor Bed**: PC0
+
+#### TMC Driver Communication
+- **TMC UART X**: PC4
+- **TMC UART Y**: PC5
+- **TMC UART Z**: PC6
+- **TMC UART E0**: PC7
+- **TMC UART E1**: PC8
+
+#### TMC SPI CS Pins
+- **TMC SPI CS X**: PD7
+- **TMC SPI CS Y**: PD6
+- **TMC SPI CS Z**: PD5
+- **TMC SPI CS E0**: PD4
+- **TMC SPI CS E1**: PD3
+
 ## Configuration
 
 ### Example Configuration (stm32_octopus_basic.yaml)
@@ -103,16 +162,46 @@ axes:
       limit_neg_pin: PG6:low
 ```
 
+### Example Configuration (stm32_spider_v3_basic.yaml)
+
+```yaml
+name: Fysetc Spider v3 STM32
+board: Fysetc Spider v3
+stepping:
+  engine: RMT
+  pulse_us: 4
+  dir_delay_us: 1
+
+axes:
+  x:
+    steps_per_mm: 80
+    max_rate_mm_per_min: 5000
+    motor0:
+      standard_stepper:
+        direction_pin: PE8:low
+        step_pin: PE9
+        disable_pin: PE7
+      limit_neg_pin: PA1:low
+```
+
 ## Build Configuration
 
 ### PlatformIO Configuration
 
 ```ini
+# BigTreeTech Octopus
 [env:stm32_octopus]
 platform = ststm32
 framework = arduino
 board = genericSTM32F446RE
 build_flags = -DSTM32 -DBOARD_OCTOPUS
+
+# Fysetc Spider v3
+[env:stm32_spider_v3]
+platform = ststm32
+framework = arduino
+board = genericSTM32F446VE
+build_flags = -DSTM32 -DBOARD_SPIDER_V3
 ```
 
 ## Implementation Status

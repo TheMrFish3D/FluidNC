@@ -1,0 +1,187 @@
+name: Fysetc Spider v3 STM32
+board: Fysetc Spider v3
+meta: STM32F446VET6 CNC Controller Board
+stepping:
+  engine: RMT
+  idle_ms: 255
+  dir_delay_us: 1
+  pulse_us: 4
+  disable_delay_us: 0
+
+uart1:
+  txd_pin: PA9
+  rxd_pin: PA10
+  baud: 115200
+  mode: 8N1
+
+axes:
+  shared_stepper_disable_pin: NO_PIN
+  homing_runs: 1
+  
+  x:
+    steps_per_mm: 80
+    max_rate_mm_per_min: 5000
+    acceleration_mm_per_sec2: 500
+    max_travel_mm: 300
+    homing:
+      cycle: 2
+      mpos_mm: 0
+      positive_direction: false
+      seek_mm_per_min: 2000
+      feed_mm_per_min: 800
+    motor0:
+      limit_neg_pin: PA1:low
+      limit_pos_pin: NO_PIN
+      limit_all_pin: NO_PIN
+      pulloff_mm: 2
+      standard_stepper:
+        direction_pin: PE8:low
+        step_pin: PE9
+        disable_pin: PE7
+        
+  y:
+    steps_per_mm: 80
+    max_rate_mm_per_min: 5000
+    acceleration_mm_per_sec2: 500
+    max_travel_mm: 300
+    homing:
+      cycle: 2
+      mpos_mm: 0
+      positive_direction: false
+      seek_mm_per_min: 2000
+      feed_mm_per_min: 800
+    motor0:
+      limit_neg_pin: PA2:low
+      limit_pos_pin: NO_PIN
+      limit_all_pin: NO_PIN
+      pulloff_mm: 2
+      standard_stepper:
+        direction_pin: PE10:low
+        step_pin: PE11
+        disable_pin: PE7
+        
+  z:
+    steps_per_mm: 400
+    max_rate_mm_per_min: 2000
+    acceleration_mm_per_sec2: 200
+    max_travel_mm: 200
+    homing:
+      cycle: 1
+      mpos_mm: 0
+      positive_direction: true
+      seek_mm_per_min: 1000
+      feed_mm_per_min: 400
+    motor0:
+      limit_neg_pin: PA3:low
+      limit_pos_pin: NO_PIN
+      limit_all_pin: NO_PIN
+      pulloff_mm: 2
+      standard_stepper:
+        direction_pin: PE12:low
+        step_pin: PE13
+        disable_pin: PE7
+
+control:
+  safety_door_pin: NO_PIN
+  reset_pin: NO_PIN
+  feed_hold_pin: NO_PIN
+  cycle_start_pin: NO_PIN
+
+probe:
+  pin: PA0:low
+
+spi:
+  miso_pin: PA6
+  mosi_pin: PA7
+  sck_pin: PA5
+
+pwm:
+  pwm_hz: 5000
+  direction_pin: NO_PIN
+  output_pin: PB0
+  enable_pin: NO_PIN
+  disable_with_s0: false
+  s0_with_disable: true
+  spinup_ms: 0
+  spindown_ms: 0
+  tool_num: 0
+  speed_map: 0=0.000% 1000=100.000%
+  off_on_alarm: false
+
+# Heater outputs for potential heated bed/extruder control
+heater_bed:
+  pin: PB1
+  
+heater_0:
+  pin: PB2
+  
+heater_1:
+  pin: PB3
+
+# Fan outputs
+fan0:
+  pin: PB4
+  
+fan1:
+  pin: PB5
+  
+fan2:
+  pin: PB6
+
+# Thermistor inputs
+thermistor_bed:
+  pin: PC0
+  
+thermistor_0:
+  pin: PC1
+  
+thermistor_1:
+  pin: PC2
+
+# Endstop pins (Spider v3 specific)
+endstop_x_min: PA1
+endstop_y_min: PA2
+endstop_z_min: PA3
+endstop_x_max: PB10
+endstop_y_max: PB11
+endstop_z_max: PB12
+
+# Additional motor outputs for dual Z or other configurations
+motor_1:
+  direction_pin: PE14:low
+  step_pin: PE15
+  disable_pin: PE7
+  
+motor_2:
+  direction_pin: PD8:low
+  step_pin: PD9
+  disable_pin: PE7
+
+# Additional motor for 5-axis support
+motor_3:
+  direction_pin: PD10:low
+  step_pin: PD11
+  disable_pin: PE7
+
+# RGB LED (NeoPixel) support
+rgb_led:
+  pin: PD3
+  
+# Power supply control
+ps_on_pin: PC3
+
+# TMC UART pins (Spider v3 specific)
+tmc_uart_x: PC4
+tmc_uart_y: PC5
+tmc_uart_z: PC6
+tmc_uart_e0: PC7
+tmc_uart_e1: PC8
+
+# SPI CS pins for TMC drivers
+tmc_spi_cs_x: PD7
+tmc_spi_cs_y: PD6
+tmc_spi_cs_z: PD5
+tmc_spi_cs_e0: PD4
+tmc_spi_cs_e1: PD3
+
+verbose_errors: true
