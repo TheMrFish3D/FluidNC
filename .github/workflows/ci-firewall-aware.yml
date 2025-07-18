@@ -1,0 +1,258 @@
+name: FluidNC CI - Firewall Aware Build
+
+on: [push, pull_request]
+
+env:
+  PLATFORMIO_CACHE_DIR: ~/.cache/platformio
+  PLATFORMIO_CORE_DIR: ~/.platformio
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+        pio_env:
+          - noradio
+          - wifi
+          - bt
+        pio_env_variant:
+          - ""
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: "pip"
+      
+      # Pre-firewall setup: Configure network settings
+      - name: Configure firewall-aware network settings
+        shell: bash
+        run: |
+          # Configure DNS to use public resolvers
+          echo "nameserver 8.8.8.8" | sudo tee -a /etc/resolv.conf || true
+          echo "nameserver 1.1.1.1" | sudo tee -a /etc/resolv.conf || true
+          
+          # Set HTTP/HTTPS proxy environment variables if available
+          if [ -n "$HTTP_PROXY" ]; then
+            echo "HTTP_PROXY=$HTTP_PROXY" >> $GITHUB_ENV
+            echo "HTTPS_PROXY=$HTTPS_PROXY" >> $GITHUB_ENV
+          fi
+          
+          # Configure Git to use system certificates
+          git config --global http.sslVerify true
+          git config --global http.sslCAInfo /etc/ssl/certs/ca-certificates.crt || true
+      
+      # Install PlatformIO with retry mechanism
+      - name: Install PlatformIO with retry
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          
+          # Retry mechanism for PlatformIO installation
+          max_attempts=3
+          attempt=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts..."
+            
+            if pip install -r requirements.txt --timeout=300 --retries=5; then
+              echo "PlatformIO installation successful!"
+              break
+            else
+              echo "Installation failed on attempt $attempt"
+              if [ $attempt -eq $max_attempts ]; then
+                echo "All attempts failed. Trying alternative installation method..."
+                # Try alternative installation without network dependencies
+                pip install --no-deps platformio==6.1.18 || exit 1
+              else
+                sleep 30
+              fi
+            fi
+            
+            attempt=$((attempt + 1))
+          done
+      
+      # Enhanced PlatformIO cache with fallback
+      - name: Cache PlatformIO dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio
+            ~/.cache/platformio
+          key: platformio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            platformio-${{ runner.os }}-
+            platformio-
+      
+      # Pre-download dependencies with retry mechanism
+      - name: Pre-download dependencies with retry
+        shell: bash
+        run: |
+          # Function to retry network operations
+          retry_command() {
+            local max_attempts=3
+            local attempt=1
+            local command="$1"
+            
+            while [ $attempt -le $max_attempts ]; do
+              echo "Executing: $command (attempt $attempt)"
+              
+              if eval "$command"; then
+                return 0
+              else
+                echo "Command failed on attempt $attempt"
+                if [ $attempt -lt $max_attempts ]; then
+                  sleep $((attempt * 10))
+                fi
+              fi
+              
+              attempt=$((attempt + 1))
+            done
+            
+            return 1
+          }
+          
+          # Initialize PlatformIO with retry
+          retry_command "pio system info" || echo "PlatformIO system info failed, continuing..."
+          
+          # Pre-install platforms with retry
+          retry_command "pio platform install espressif32" || echo "Platform installation failed, will retry during build..."
+          
+          # Pre-install libraries with retry
+          retry_command "pio pkg install --global --library TMCStepper" || echo "Library pre-installation failed, will retry during build..."
+      
+      # Build with enhanced error handling
+      - name: Build target ${{ matrix.pio_env }}${{ matrix.pio_env_variant }}
+        shell: bash
+        run: |
+          # Set additional environment variables for offline-friendly build
+          export PLATFORMIO_OFFLINE_MODE=false
+          export PLATFORMIO_DOWNLOAD_TIMEOUT=300
+          export PLATFORMIO_INSTALL_TIMEOUT=600
+          
+          # Build with retry mechanism
+          max_attempts=3
+          attempt=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            echo "Build attempt $attempt of $max_attempts..."
+            
+            if pio run -e ${{ matrix.pio_env }}${{ matrix.pio_env_variant }} -v; then
+              echo "Build successful!"
+              break
+            else
+              echo "Build failed on attempt $attempt"
+              
+              if [ $attempt -eq $max_attempts ]; then
+                echo "All build attempts failed. Gathering diagnostic information..."
+                echo "=== PlatformIO System Info ==="
+                pio system info || true
+                echo "=== PlatformIO Package List ==="
+                pio pkg list || true
+                echo "=== Network connectivity test ==="
+                curl -I https://api.registry.platformio.org/ || true
+                curl -I https://download.platformio.org/ || true
+                exit 1
+              else
+                echo "Waiting before retry..."
+                sleep 30
+                
+                # Clean cache on retry
+                pio system prune --force || true
+              fi
+            fi
+            
+            attempt=$((attempt + 1))
+          done
+      
+      # Upload artifacts
+      - if: matrix.os == 'ubuntu-latest'
+        name: Upload ${{ matrix.pio_env }}${{ matrix.pio_env_variant }} firmware.bin
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.pio_env }}${{ matrix.pio_env_variant }}_firmware
+          path: |
+            .pio/build/${{ matrix.pio_env }}${{ matrix.pio_env_variant }}/firmware.*
+            .pio/build/${{ matrix.pio_env }}${{ matrix.pio_env_variant }}/partitions.bin
+          if-no-files-found: warn
+      
+      # Network diagnostics on failure
+      - if: failure()
+        name: Network diagnostics
+        shell: bash
+        run: |
+          echo "=== Network Diagnostics ==="
+          echo "DNS Resolution Test:"
+          nslookup api.registry.platformio.org || true
+          nslookup download.platformio.org || true
+          
+          echo "Connectivity Test:"
+          ping -c 3 8.8.8.8 || true
+          curl -I https://api.registry.platformio.org/ || true
+          curl -I https://download.platformio.org/ || true
+          
+          echo "PlatformIO Configuration:"
+          pio settings get || true
+          
+          echo "Environment Variables:"
+          env | grep -E "(HTTP|HTTPS|PROXY|PLATFORMIO)" || true
+
+  tests:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            pio_env: tests
+          - os: macos-latest
+            pio_env: tests
+          - os: windows-latest
+            pio_env: tests_nosan
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      # Windows has issues running gtest code with the included gcc, so install
+      # MSYS2 and use that instead (remember to add it to the path)
+      - if: matrix.os == 'windows-latest'
+        name: Install MSYS2 (Windows)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          location: D:\
+          install: mingw-w64-ucrt-x86_64-gcc
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.9"
+          cache: "pip"
+      
+      - name: Install PlatformIO
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Cache PlatformIO
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: platformio-${{ runner.os }}-tests
+      
+      # Separate run task for Windows, since it has issues with the included gcc
+      - if: matrix.os == 'windows-latest'
+        name: Run tests (Windows)
+        run: |
+          $env:PATH = "D:\msys64\mingw64\bin;D:\msys64\usr\bin;D:\msys64\ucrt64\bin;" + $env:PATH
+          pio test -e ${{ matrix.pio_env }} -vv
+      
+      - if: matrix.os != 'windows-latest'
+        name: Run tests
+        run: pio test -e ${{ matrix.pio_env }} -vv

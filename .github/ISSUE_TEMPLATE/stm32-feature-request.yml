@@ -1,0 +1,203 @@
+name: STM32 Feature Request
+description: Request a new feature for STM32 platform support
+title: "[STM32 Feature] "
+labels: ["enhancement", "stm32", "feature-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature for STM32 platform support!
+        
+        Please provide as much detail as possible to help us understand and evaluate your request.
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      description: Please verify these items before submitting the feature request
+      options:
+        - label: I have searched existing issues and this is not a duplicate
+          required: true
+        - label: I have reviewed the STM32 Implementation Roadmap
+          required: true
+        - label: This feature is not already planned or implemented
+          required: true
+
+  - type: dropdown
+    id: feature_category
+    attributes:
+      label: Feature Category
+      description: What type of feature is this?
+      options:
+        - Hardware Support (New STM32 boards/chips)
+        - Motor Control (Stepper/Servo enhancements)
+        - Communication (UART/SPI/I2C improvements)
+        - Display Support (LCD/OLED integration)
+        - Safety Features (Limits/Emergency stop)
+        - Configuration System (YAML/Runtime config)
+        - Build System (Compilation/Deployment)
+        - Documentation (Guides/Examples)
+        - Performance Optimization
+        - Other
+      default: 0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this feature to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would be helpful
+        - High - Important for my project
+        - Critical - Blocking my project
+      default: 1
+    validations:
+      required: true
+
+  - type: textarea
+    id: feature_description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: Describe the feature...
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use Case
+      description: Describe the problem this feature would solve or the improvement it would provide
+      placeholder: |
+        - What problem does this solve?
+        - How would you use this feature?
+        - What would be the benefits?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_solution
+    attributes:
+      label: Proposed Solution
+      description: How do you think this feature should be implemented?
+      placeholder: |
+        - Configuration options needed
+        - API changes required
+        - Hardware requirements
+        - Software dependencies
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: |
+        - Other approaches you've considered
+        - Current workarounds you're using
+        - Why those alternatives are not suitable
+
+  - type: dropdown
+    id: target_boards
+    attributes:
+      label: Target STM32 Boards
+      description: Which STM32 boards should this feature support?
+      multiple: true
+      options:
+        - STM32F103C8 (stm32_noradio)
+        - STM32F401CC (stm32_basic)
+        - STM32F407VG (stm32_advanced)
+        - All current STM32 boards
+        - New STM32 board (specify in description)
+      default: 3
+
+  - type: textarea
+    id: hardware_requirements
+    attributes:
+      label: Hardware Requirements
+      description: What hardware is needed for this feature?
+      placeholder: |
+        - STM32 chip requirements (flash, RAM, peripherals)
+        - External components needed
+        - Pinout requirements
+        - Power requirements
+
+  - type: textarea
+    id: software_requirements
+    attributes:
+      label: Software Requirements
+      description: What software dependencies or changes are needed?
+      placeholder: |
+        - Library dependencies
+        - Framework requirements
+        - API changes needed
+        - Configuration changes
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility Considerations
+      description: How would this feature interact with existing functionality?
+      placeholder: |
+        - ESP32 compatibility
+        - Backward compatibility
+        - Breaking changes
+        - Migration requirements
+
+  - type: textarea
+    id: testing_approach
+    attributes:
+      label: Testing Approach
+      description: How should this feature be tested?
+      placeholder: |
+        - Unit tests needed
+        - Integration tests
+        - Hardware testing requirements
+        - Performance testing
+
+  - type: textarea
+    id: documentation_needs
+    attributes:
+      label: Documentation Needs
+      description: What documentation would be needed for this feature?
+      placeholder: |
+        - User documentation
+        - Developer documentation
+        - Configuration examples
+        - Troubleshooting guides
+
+  - type: textarea
+    id: implementation_timeline
+    attributes:
+      label: Implementation Timeline
+      description: When do you need this feature? Are you willing to contribute?
+      placeholder: |
+        - Desired timeline
+        - Willingness to contribute code
+        - Available time for testing
+        - Resources you can provide
+
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or examples
+      placeholder: |
+        - Links to similar implementations
+        - Screenshots or diagrams
+        - Code examples
+        - Reference materials
+
+  - type: markdown
+    attributes:
+      value: |
+        ## Community Input
+        
+        This feature request will be reviewed by the FluidNC community and development team. Please consider:
+        
+        - **Community Benefit**: How would this feature benefit the broader FluidNC community?
+        - **Maintenance**: Are you willing to help maintain this feature long-term?
+        - **Contribution**: Can you contribute code, testing, or documentation?
+        - **Feedback**: Are you open to feedback and iteration on this feature?
