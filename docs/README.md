@@ -2,9 +2,14 @@
 
 This directory contains comprehensive documentation for FluidNC, including STM32 support, development workflows, and contribution guidelines.
 
+## 🚨 Important Notice
+
+**Current Build Environment Issues**: Due to network restrictions in the current build environment, some PlatformIO operations may fail with HTTPClientError. This is a known limitation and not a regression. See [Build Issues and Solutions](Build-Issues-and-Solutions.md) for detailed workarounds and solutions.
+
 ## Documentation Structure
 
 ### Core Documentation
+- [`Build-Issues-and-Solutions.md`](Build-Issues-and-Solutions.md) - **Start here** for current build environment issues
 - [`STM32-Implementation-Roadmap.md`](STM32-Implementation-Roadmap.md) - STM32 platform implementation roadmap and milestones
 - [`Development-Workflow.md`](Development-Workflow.md) - Development workflow guidelines and best practices
 - [`Hardware-Validation.md`](Hardware-Validation.md) - Hardware validation procedures and testing guidelines
@@ -24,7 +29,7 @@ This directory contains comprehensive documentation for FluidNC, including STM32
 
 For developers getting started with FluidNC:
 
-1. **Read the [Development Workflow](Development-Workflow.md)** to understand the development process
+1. **Read the [Build Issues and Solutions](Build-Issues-and-Solutions.md)** to understand current limitations
 2. **Check [Platform Support](Platform-Support.md)** for your target hardware
 3. **Review [Build System](Build-System.md)** for build configuration and offline capabilities
 4. **Follow [Community Contribution](Community-Contribution.md)** guidelines for contributing

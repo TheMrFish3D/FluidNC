@@ -145,7 +145,114 @@ configure_offline() {
     export PIP_FIND_LINKS="file://$CACHE_DIR/pip_cache"
     export PIP_NO_INDEX=true
     
+    # Create a temporary platformio.ini with offline configuration
+    create_offline_platformio_ini
+    
     log "Offline mode configured"
+}
+
+# Create offline platformio.ini configuration
+create_offline_platformio_ini() {
+    log "Creating offline platformio.ini configuration..."
+    
+    # Back up original platformio.ini
+    cp "$PROJECT_DIR/platformio.ini" "$PROJECT_DIR/platformio.ini.backup"
+    
+    # Create offline version that uses local packages
+    cat > "$PROJECT_DIR/platformio_offline.ini" << 'EOF'
+; Offline PlatformIO Configuration
+; This configuration uses local packages to avoid network dependencies
+
+[platformio]
+src_dir = FluidNC
+include_dir = FluidNC/include
+test_dir = FluidNC/tests
+data_dir = FluidNC/data
+default_envs = wifi
+extra_configs=
+    platformio_override.ini
+
+[common_env_data]
+lib_deps_builtin = 
+	SPI
+
+[common]
+build_flags = 
+	!python git-version.py
+	-DCORE_DEBUG_LEVEL=0
+	-Wno-unused-variable
+	-Wno-unused-function
+lib_deps =
+	TMCStepper@>=0.7.0,<1.0.0
+	thingpulse/ESP8266 and ESP32 OLED driver for SSD1306 displays@4.4.1
+bt_deps =
+	BluetoothSerial
+wifi_deps =
+	arduinoWebSockets=https://github.com/MitchBradley/arduinoWebSockets#canSend
+	WiFi=https://github.com/MitchBradley/WiFi#canWrite
+
+[common_esp32_base]
+platform = espressif32@6.8.1
+framework = arduino
+board_build.arduino.upstream_packages = no
+upload_speed = 921600
+board_build.partitions = min_littlefs.csv
+board_build.filesystem = littlefs
+monitor_speed = 115200
+monitor_flags = 
+	--eol=LF
+monitor_filters=esp32_exception_decoder
+board_build.f_flash = 80000000L
+build_unflags = -std=gnu++11
+build_flags = ${common.build_flags} -std=gnu++17 -D_GLIBCXX_HAVE_DIRENT_H -D__FLUIDNC
+build_src_filter =
+	+<*.h> +<*.s> +<*.S> +<*.cpp> +<*.c> +<src/>
+        +<esp32>
+        +<stdfs>
+        -<src/WebUI>
+        -<src/BTConfig.cpp>
+lib_extra_dirs = 
+	libraries
+
+[common_esp32]
+extends = common_esp32_base
+board = esp32dev
+
+[common_wifi]
+build_src_filter = +<src/WebUI/*.cpp>
+
+[common_bt]
+build_src_filter = +<src/BTConfig.cpp> +<src/WebUI/WebCommands.cpp>
+
+[env:noradio]
+extends = common_esp32
+lib_deps = ${common.lib_deps}
+build_src_filter = ${common_esp32_base.build_src_filter}
+
+[env:wifi]
+extends = common_esp32
+lib_deps = ${common.lib_deps} ${common.wifi_deps}
+build_src_filter = ${common_esp32_base.build_src_filter} ${common_wifi.build_src_filter}
+
+[env:bt]
+extends = common_esp32
+lib_deps = ${common.lib_deps} ${common.bt_deps}
+build_src_filter = ${common_esp32_base.build_src_filter} ${common_bt.build_src_filter}
+
+[tests_common]
+platform = native
+test_framework = googletest
+test_build_src = true
+build_src_filter = +<src/Pins/PinOptionsParser.cpp> +<src/string_util.cpp>
+build_flags = -std=c++17 -g
+
+[env:tests]
+extends = tests_common
+build_flags = ${tests_common.build_flags} -fsanitize=address,undefined
+
+[env:tests_nosan]
+extends = tests_common
+EOF
 }
 
 # Clean build cache
@@ -189,9 +296,14 @@ list_environments() {
 build_environment() {
     local env="$1"
     local verbose=""
+    local config_file=""
     
     if [ "$VERBOSE" = "true" ]; then
         verbose="-v"
+    fi
+    
+    if [ "$OFFLINE_MODE" = "true" ]; then
+        config_file="-c platformio_offline.ini"
     fi
     
     log "Building environment: $env"
@@ -203,7 +315,7 @@ build_environment() {
     while [ $attempt -le $max_attempts ]; do
         log "Build attempt $attempt of $max_attempts..."
         
-        if pio run -e "$env" $verbose; then
+        if pio run $config_file -e "$env" $verbose; then
             log "Build successful for environment: $env"
             return 0
         else
@@ -226,7 +338,7 @@ build_environment() {
 build_all() {
     log "Building all environments..."
     
-    local environments=("noradio" "wifi" "bt" "stm32_noradio" "stm32_basic" "stm32_advanced")
+    local environments=("noradio" "wifi" "bt")
     local failed_builds=()
     
     for env in "${environments[@]}"; do
